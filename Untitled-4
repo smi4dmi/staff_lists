@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Список персонала</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; display: flex; height: 100vh; }
+  .sidebar {
+    background: #ccc;
+    padding: 15px;
+    border-right: 1px solid #ddd;
+    width: 60vw;
+    display: flex;
+    flex-direction: column;
+  }
+  .departments-container {
+    flex: 1;
+    overflow-y: auto;
+  }
+  h2 {
+    margin: 10px 0;
+    color: black;
+  }
+  .btn-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+  }
+  .sidebar button {
+    background: #eee;
+    border: none;
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .sidebar button:hover,
+  .sidebar button.active {
+    background: #005fcf;
+	color: white; 
+  }
+  /* Кастомная кнопка загрузки */
+  .upload-btn {
+	width: 250px;    
+	display: inline-block; /* Чтобы можно было задавать padding и ширину */
+    background-color: #4CAF50; /* Цвет фона кнопки */
+    color: black; /* Цвет текста */
+    font-family: Arial, sans-serif; /* Шрифт */
+    font-size: 16px; /* Размер шрифта */
+    font-weight: bold; /* Жирный текст */
+    padding: 12px 24px; /* Внутренние отступы (высота и ширина кнопки) */
+    border: 2px solid #3e8e41; /* Толщина, стиль и цвет рамки */
+    border-radius: 8px; /* Скругление углов */
+    cursor: pointer; /* Курсор в виде руки при наведении */
+    transition: all 0.3s ease; /* Плавная анимация при наведении */
+    letter-spacing: 1px; /* Расстояние между буквами */
+    text-transform: uppercase; /* Преобразование текста в заглавные буквы */
+	}
+  .upload-btn:hover {
+    background: #45a049;
+	}
+  .content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #f4f4f4;
+  }
+  .department-info {
+    background: white;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .department-info h3,
+  .department-info h2 {
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .leadership-member {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 3px solid #ccc;
+  }
+  .leadership-info {
+    max-width: 65%;
+  }
+  .leadership-position {
+    font-weight: bold;
+    color: #333;
+  }
+  .leadership-name {
+    margin-top: 3px;
+  }
+  .leadership-phones {
+	flex-basis: 300px;
+	text-align: left;
+    font-size: 0.9em;
+    color: #555;
+    white-space: nowrap;
+	font-size: 18px;
+  }
+  .line-staff-container {
+    display: flex;
+    gap: 20px;
+  }
+  .line-staff-list {
+    flex: 1;
+    max-height: auto;
+    overflow-y: auto;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .employee {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+  }
+  .employee.selected {
+    background: #d1ecf1;
+    border-left: 4px solid #0c5460;
+  }
+  .line-staff-contact {
+    flex-basis: 300px;
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    font-size: 18px;
+    color: #444;
+  }
+  .line-staff-contact p {
+    margin-bottom: 8px;
+  }
+  .line-staff-contact p:last-child {
+    margin-bottom: 0;
+  }
+  .line-staff-contact .phones {
+    margin-top: 10px;
+  }
+  .line-staff-contact .phones div {
+    margin-bottom: 5px;
+  }
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #ddd; }
+    .btn-group { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .line-staff-container {
+      flex-direction: column;
+    }
+    .line-staff-contact {
+      flex-basis: auto;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="departments-container">
+	<h2>АТП МПМЭС</h2>
+    <div class="btn-group" id="boss-departments"></div>
+	<hr style="margin: 15px 0; border: none; border-top: 6px solid #eee;">
+    <h2>Подстанции Московского ПМЭС</h2>
+    <div class="btn-group" id="our-departments"></div>
+	<hr style="margin: 15px 0; border: none; border-top: 6px solid #eee;">
+    <h2>Смежные организации электроэнергетики</h2>
+    <div class="btn-group" id="external-departments"></div>
+  </div>
+
+  <!-- Скрытый input и кастомная кнопка -->
+  <input type="file" id="fileInput" accept=".json" style="display: none;" />
+  <button class="upload-btn" id="customUploadBtn">Обновить \ загрузить список</button>
+</div>
+
+<div class="content" id="employee-list">
+  <p>Выберите ПС / организацию слева, чтобы увидеть список сотрудников и контакты.</p>
+</div>
+
+<script>
+  let departments = null;
+  let selectedDepartment = null;
+  let selectedEmployees = new Set();
+
+  const fileInput = document.getElementById('fileInput');
+  const customUploadBtn = document.getElementById('customUploadBtn');
+  const ourContainer = document.getElementById('our-departments');
+  const externalContainer = document.getElementById('external-departments');
+  const employeeList = document.getElementById('employee-list');
+
+  // При нажатии на кастомную кнопку — открываем скрытый input
+  customUploadBtn.addEventListener('click', () => fileInput.click());
+
+  // Автозагрузка данных при старте страницы
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch('data.json')
+      .then(response => {
+        if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        departments = data;
+        renderButtons();
+      })
+      .catch(err => {
+        console.error('Не удалось загрузить data.json:', err);
+        departments = { our: [], external: [] };
+        renderButtons();
+      });
+  });
+
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (!data.our || !data.external) throw new Error('Неверный формат JSON');
+        departments = data;
+        selectedDepartment = null;
+        selectedEmployees.clear();
+        renderButtons();
+        employeeList.innerHTML = '<p>Выберите ПС/организацию слева, чтобы увидеть список сотрудников и контакты.</p>';
+      } catch (err) {
+        alert('Ошибка при чтении файла: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  function renderButtons() {
+    ourContainer.innerHTML = '';
+    externalContainer.innerHTML = '';
+
+    departments.our.forEach((dept, i) => {
+      const btn = document.createElement('button');
+      btn.textContent = dept.name;
+      btn.onclick = () => showDepartment('our', i, btn);
+      ourContainer.appendChild(btn);
+    });
+
+    departments.external.forEach((dept, i) => {
+      const btn = document.createElement('button');
+      btn.textContent = dept.name;
+      btn.onclick = () => showDepartment('external', i, btn);
+      externalContainer.appendChild(btn);
+    });
+  }
+
+  function showDepartment(type, index, btn) {
+    selectedDepartment = { type, index };
+    selectedEmployees.clear();
+
+    [...ourContainer.children, ...externalContainer.children].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const dept = departments[type][index];
+
+    if (type === 'our') {
+      let leadershipHTML = '';
+      if (dept.leadership && dept.leadership.length > 0) {
+        leadershipHTML = dept.leadership.map(member => `
+          <div class="leadership-member">
+            <div class="leadership-info">
+              <div class="leadership-position">${member.position}</div>
+              <div class="leadership-name">${member.name}</div>
+            </div>
+            <div class="leadership-phones">
+              <div>📞 ${member.phones.short}</div>
+              <div>📞 ${member.phones.mobile}</div>
+              
+            </div>
+          </div>
+        `).join('');
+      }
+
+      let staffHTML = dept.staff.map((name, i) => `
+        <div class="employee" data-index="${i}">${name}</div>
+      `).join('');
+
+      employeeList.innerHTML = `
+        <h2>${dept.name}</h2>
+        <div class="leadership-list" style="margin-bottom:20px;">
+          ${leadershipHTML}
+        </div>
+        <hr style="margin: 15px 0; border: none; border-top: 0px solid #ccc;">
+        <div class="line-staff-container">
+          <div class="line-staff-list">
+            ${staffHTML}
+          </div>
+          <div class="line-staff-contact">
+            <p>✉️ ${dept.email}</p>
+            <div class="phones">
+              <div>📞 ${dept.phones.short}</div>
+              <div>📞 ${dept.phones.mobile}</div>
+              <div>📞 ${dept.phones.city}</div>
+              <div>📞 ${dept.phones.ext1 || '-'}</div>
+              <div>📞 ${dept.phones.ext2 || dept.phones.ext4 || '-'}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const employeeDivs = employeeList.querySelectorAll('.employee');
+      employeeDivs.forEach(div => {
+        div.addEventListener('click', () => {
+          const idx = div.dataset.index;
+          if (selectedEmployees.has(idx)) {
+            selectedEmployees.delete(idx);
+            div.classList.remove('selected');
+          } else {
+            selectedEmployees.add(idx);
+            div.classList.add('selected');
+          }
+          saveSelected();
+        });
+      });
+
+      loadSelected();
+
+    } else {
+      const staffHTML = dept.staff.map((name, i) => `
+        <div class="employee" data-index="${i}" style="padding: 5px 10px; border-bottom:1px solid #eee; cursor:pointer;">
+          ${name}
+        </div>
+      `).join('');
+
+      employeeList.innerHTML = `
+        <h2 style="margin-bottom:15px;">${dept.name}</h2>
+        
+
+<div class="line-staff-container">
+          <div class="line-staff-list">
+            ${staffHTML}
+          </div>
+          <div class="line-staff-contact">
+            <p>✉️ ${dept.email}</p>
+            <div class="phones">
+              <div>📞 ${dept.phones.short}</div>
+              <div>📞 ${dept.phones.mobile}</div>
+              <div>📞 ${dept.phones.city}</div>
+             </div>
+          </div>
+        </div>
+      `;
+
+      const employeeDivs = employeeList.querySelectorAll('.employee');
+      employeeDivs.forEach(div => {
+        div.addEventListener('click', () => {
+          const idx = div.dataset.index;
+          if (selectedEmployees.has(idx)) {
+            selectedEmployees.delete(idx);
+            div.classList.remove('selected');
+          } else {
+            selectedEmployees.add(idx);
+            div.classList.add('selected');
+          }
+          saveSelected();
+        });
+      });
+
+      loadSelected();
+    }
+  }
+
+  function saveSelected() {
+    if (!selectedDepartment) return;
+    const key = `selectedEmployees_${selectedDepartment.type}_${selectedDepartment.index}`;
+    localStorage.setItem(key, JSON.stringify(Array.from(selectedEmployees)));
+  }
+
+  function loadSelected() {
+    if (!selectedDepartment) return;
+    const key = `selectedEmployees_${selectedDepartment.type}_${selectedDepartment.index}`;
+    const saved = localStorage.getItem(key);
+    if (!saved) return;
+    const savedSet = new Set(JSON.parse(saved));
+    const employeeDivs = employeeList.querySelectorAll('.employee');
+    employeeDivs.forEach(div => {
+      const idx = div.dataset.index;
+      if (savedSet.has(idx)) {
+        div.classList.add('selected');
+        selectedEmployees.add(idx);
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

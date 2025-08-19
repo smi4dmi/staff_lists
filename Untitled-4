@@ -184,6 +184,7 @@
   <p>Выберите ПС / организацию слева, чтобы увидеть список сотрудников и контакты.</p>
 </div>
 
+<script src="data.js"></script>
 <script>
   let departments = null;
   let selectedDepartment = null;
@@ -198,22 +199,14 @@
   // При нажатии на кастомную кнопку — открываем скрытый input
   customUploadBtn.addEventListener('click', () => fileInput.click());
 
-  // Автозагрузка данных при старте страницы
+  // Автозагрузка данных при старте страницы (через глобальный объект из data.js)
   document.addEventListener('DOMContentLoaded', () => {
-    fetch('data.json')
-      .then(response => {
-        if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
-        return response.json();
-      })
-      .then(data => {
-        departments = data;
-        renderButtons();
-      })
-      .catch(err => {
-        console.error('Не удалось загрузить data.json:', err);
-        departments = { our: [], external: [] };
-        renderButtons();
-      });
+    if (window.DEPARTMENTS && (Array.isArray(window.DEPARTMENTS.our) || Array.isArray(window.DEPARTMENTS.external))) {
+      departments = window.DEPARTMENTS;
+    } else {
+      departments = { our: [], external: [] };
+    }
+    renderButtons();
   });
 
   fileInput.addEventListener('change', e => {
